@@ -1,0 +1,26 @@
+name: Enviar notícias
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 07:00 BRT (UTC-3 → 10 UTC)
+    - cron: '50 14 * * *'  # 11:50 BRT → 14:50 UTC
+    - cron: '0 22 * * *'   # 19:00 BRT → 22:00 UTC
+  workflow_dispatch: # permite rodar manualmente
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+      - name: Executar script
+        env:
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python enviar_noticia.py
