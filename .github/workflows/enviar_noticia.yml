@@ -2,9 +2,9 @@ name: Enviar notícias
 
 on:
   schedule:
-    - cron: '0 10 * * *'   # 07:00 BRT (UTC-3 → 10 UTC)
-    - cron: '50 14 * * *'  # 11:50 BRT → 14:50 UTC
-    - cron: '0 22 * * *'   # 19:00 BRT → 22:00 UTC
+    - cron: '0 11 * * *'   # 08:00 BRT → 11:00 UTC
+    - cron: '0 14 * * *'   # 11:00 BRT → 14:00 UTC
+    - cron: '0 21 * * *'   # 18:00 BRT → 21:00 UTC
   workflow_dispatch: # permite rodar manualmente
 
 jobs:
