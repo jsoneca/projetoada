@@ -1,0 +1,6 @@
+meu-bot-noticias/
+├── send_news.py
+├── requirements.txt
+└── .github/
+    └── workflows/
+        └── send-news.yml
