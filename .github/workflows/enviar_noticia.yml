@@ -1,26 +1,29 @@
-name: Enviar notícias
+name: Telegram Noticia
 
 on:
   schedule:
-    - cron: '0 11 * * *'   # 08:00 BRT → 11:00 UTC
-    - cron: '0 14 * * *'   # 11:00 BRT → 14:00 UTC
-    - cron: '0 21 * * *'   # 18:00 BRT → 21:00 UTC
-  workflow_dispatch: # permite rodar manualmente
+    - cron: "0 11 * * *"   # 08h BRT (UTC+3 → 11 UTC)
+    - cron: "0 14 * * *"   # 11h BRT (UTC+3 → 14 UTC)
+    - cron: "0 21 * * *"   # 18h BRT (UTC+3 → 21 UTC)
+  workflow_dispatch:       # permite rodar manualmente
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Configurar Python
-        uses: actions/setup-python@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Instalar dependências
+          python-version: "3.11"
+
+      - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Executar script
+
+      - name: Run bot
+        run: python enviar_noticia.py
         env:
-          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python enviar_noticia.py
