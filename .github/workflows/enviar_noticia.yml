@@ -2,10 +2,10 @@ name: Telegram Noticia
 
 on:
   schedule:
-    - cron: "0 11 * * *"   # 08h BRT (UTC+3 → 11 UTC)
-    - cron: "0 14 * * *"   # 11h BRT (UTC+3 → 14 UTC)
-    - cron: "0 21 * * *"   # 18h BRT (UTC+3 → 21 UTC)
-  workflow_dispatch:       # permite rodar manualmente
+    - cron: "0 11 * * *"   # 08h BRT (UTC+3 -> 11 UTC)
+    - cron: "0 14 * * *"   # 11h BRT (UTC+3 -> 14 UTC)
+    - cron: "0 21 * * *"   # 18h BRT (UTC+3 -> 21 UTC)
+  workflow_dispatch:
 
 jobs:
   run:
