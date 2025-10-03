@@ -3,17 +3,17 @@ import requests
 import telegram
 import feedparser
 
-# Configurações
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-RSS_URL = "https://rss.app/feeds/pKg4lz64NExm8UkK.xml"
-
 bot = telegram.Bot(token=TOKEN)
+
+# Vários grupos/usuários
+CHAT_IDS = os.getenv("TELEGRAM_CHAT_IDS", "").split(",")
+RSS_URL = "https://rss.app/feeds/pKg4lz64NExm8UkK.xml"
 
 def fetch_rss():
     feed = feedparser.parse(RSS_URL)
     noticias = []
-    for entry in feed.entries[:5]:  # pega só as 5 últimas
+    for entry in feed.entries[:5]:
         title = entry.title
         link = entry.link
         noticias.append((title, link))
@@ -22,13 +22,16 @@ def fetch_rss():
 def send_news():
     noticias = fetch_rss()
     if not noticias:
-        bot.send_message(chat_id=CHAT_ID, text="⚠️ Nenhuma notícia encontrada no RSS.")
+        for chat in CHAT_IDS:
+            bot.send_message(chat_id=chat, text="⚠️ Nenhuma notícia encontrada.")
         return
 
-    msg = "📰 Últimas notícias (RSS):\n\n"
+    msg = "📰 Últimas notícias de hoje ☕️\n\n"
     for title, link in noticias:
         msg += f"• [{title}]({link})\n"
-    bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="Markdown")
+
+    for chat in CHAT_IDS:
+        bot.send_message(chat_id=chat, text=msg, parse_mode="Markdown")
 
 if __name__ == "__main__":
     send_news()
