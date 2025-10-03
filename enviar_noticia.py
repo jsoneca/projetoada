@@ -1,76 +1,56 @@
 import os
-import telegram
 import feedparser
 import html
+from telegram import Bot
 
-# Configurações do bot
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-bot = telegram.Bot(token=TOKEN)
-
-# IDs separados por vírgula no secret TELEGRAM_CHAT_IDS
-CHAT_IDS = os.getenv("TELEGRAM_CHAT_IDS", "").split(",")
+# === Configurações ===
+TOKEN = os.getenv("TELEGRAM_TOKEN")  # seu token do Bot
+CHAT_IDS = [c.strip() for c in os.getenv("TELEGRAM_CHAT_IDS", "").split(",") if c.strip()]  # lista de grupos
 
 # RSS do SBT News (via rss.app)
-RSS_URL = "https://rss.app/feeds/pKg4lz64NExm8UkK.xml"
+RSS_FEED = "https://rss.app/feeds/pKg4lz64NExm8UkK.xml"
 
+bot = Bot(token=TOKEN)
 
-def fetch_rss():
-    feed = feedparser.parse(RSS_URL)
+def get_news():
+    """Busca as últimas notícias do RSS"""
+    feed = feedparser.parse(RSS_FEED)
     noticias = []
-    for entry in feed.entries[:5]:  # pega as 5 últimas
-        title = entry.title
+
+    for entry in feed.entries[:3]:  # pega só as 3 últimas
+        title = html.escape(entry.title)
         link = entry.link
-        desc = entry.get("summary", "")
+        desc = html.escape(entry.summary) if hasattr(entry, "summary") else ""
 
-        # limitar tamanho do resumo (~3 linhas)
-        short_desc = " ".join(desc.split()[:40]) + "..."
-
-        # tentar pegar imagem
+        # tenta pegar imagem se existir
         image = None
-        if "media_content" in entry and entry.media_content:
+        if "media_content" in entry and len(entry.media_content) > 0:
             image = entry.media_content[0].get("url")
-        elif "media_thumbnail" in entry and entry.media_thumbnail:
-            image = entry.media_thumbnail[0].get("url")
 
         noticias.append({
             "title": title,
             "link": link,
-            "desc": short_desc,
+            "desc": desc,
             "image": image
         })
+
     return noticias
 
-
 def send_news():
-    noticias = fetch_rss()
-    if not noticias:
-        for chat in CHAT_IDS:
-            bot.send_message(chat_id=chat, text="⚠️ Nenhuma notícia encontrada no RSS.")
-        return
+    """Envia notícias formatadas para os grupos"""
+    noticias = get_news()
 
     for noticia in noticias:
-        # escapar caracteres especiais para HTML
-        title = html.escape(noticia['title'])
-        desc = html.escape(noticia['desc'])
-        link = noticia['link']
-
-        caption = f"<b>{title}</b>\n\n{desc}\n\n👉 <a href='{link}'>Ler mais</a>"
+        caption = f"<b>{noticia['title']}</b>\n\n{noticia['desc']}\n\n👉 <a href='{noticia['link']}'>Ler mais</a>"
 
         for chat in CHAT_IDS:
-            if noticia["image"]:
-                bot.send_photo(
-                    chat_id=chat,
-                    photo=noticia["image"],
-                    caption=caption,
-                    parse_mode="HTML"
-                )
-            else:
-                bot.send_message(
-                    chat_id=chat,
-                    text=caption,
-                    parse_mode="HTML"
-                )
-
+            try:
+                if noticia["image"]:
+                    bot.send_photo(chat_id=chat, photo=noticia["image"], caption=caption, parse_mode="HTML")
+                else:
+                    bot.send_message(chat_id=chat, text=caption, parse_mode="HTML")
+            except Exception as e:
+                print(f"Erro ao enviar para {chat}: {e}")
 
 if __name__ == "__main__":
     send_news()
