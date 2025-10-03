@@ -1,25 +1,31 @@
 import os
 import telegram
 import feedparser
+import html
 
+# Configurações do bot
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = telegram.Bot(token=TOKEN)
 
-# Suporte para múltiplos grupos/usuários
+# IDs separados por vírgula no secret TELEGRAM_CHAT_IDS
 CHAT_IDS = os.getenv("TELEGRAM_CHAT_IDS", "").split(",")
 
+# RSS do SBT News (via rss.app)
 RSS_URL = "https://rss.app/feeds/pKg4lz64NExm8UkK.xml"
+
 
 def fetch_rss():
     feed = feedparser.parse(RSS_URL)
     noticias = []
-    for entry in feed.entries[:5]:
+    for entry in feed.entries[:5]:  # pega as 5 últimas
         title = entry.title
         link = entry.link
         desc = entry.get("summary", "")
-        # pegar só 3 linhas (máx. 200 caracteres)
+
+        # limitar tamanho do resumo (~3 linhas)
         short_desc = " ".join(desc.split()[:40]) + "..."
-        # pegar imagem (se existir)
+
+        # tentar pegar imagem
         image = None
         if "media_content" in entry and entry.media_content:
             image = entry.media_content[0].get("url")
@@ -34,6 +40,7 @@ def fetch_rss():
         })
     return noticias
 
+
 def send_news():
     noticias = fetch_rss()
     if not noticias:
@@ -42,15 +49,28 @@ def send_news():
         return
 
     for noticia in noticias:
-        caption = f"📰 *{noticia['title']}*\n\n{noticia['desc']}\n\n👉 [Ler mais]({noticia['link']})"
+        # escapar caracteres especiais para HTML
+        title = html.escape(noticia['title'])
+        desc = html.escape(noticia['desc'])
+        link = noticia['link']
+
+        caption = f"<b>{title}</b>\n\n{desc}\n\n👉 <a href='{link}'>Ler mais</a>"
 
         for chat in CHAT_IDS:
             if noticia["image"]:
-                # Envia com imagem
-                bot.send_photo(chat_id=chat, photo=noticia["image"], caption=caption, parse_mode="Markdown")
+                bot.send_photo(
+                    chat_id=chat,
+                    photo=noticia["image"],
+                    caption=caption,
+                    parse_mode="HTML"
+                )
             else:
-                # Sem imagem
-                bot.send_message(chat_id=chat, text=caption, parse_mode="Markdown")
+                bot.send_message(
+                    chat_id=chat,
+                    text=caption,
+                    parse_mode="HTML"
+                )
+
 
 if __name__ == "__main__":
     send_news()
