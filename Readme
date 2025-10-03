@@ -1,6 +1,6 @@
-meu-bot-noticias/
-├── enviar_noticia.py
-├── requirements.txt
-└── .github/
-    └── workflows/
-        └── enviar_noticia.yml
+meu bot de noticia/
+ ├── enviar_noticia.py
+ ├── requirements.txt
+ └── .github/
+      └── workflows/
+           └── enviar_noticia.yml
