@@ -1,51 +1,45 @@
-#!/usr/bin/env python3
-import os
 import requests
-import html
-from datetime import datetime
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+import telegram
+import os
 
-# Variáveis de ambiente (configuradas nos Secrets do GitHub)
-NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY")
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+BASE_URL = "https://sbtnews.sbt.com.br/noticias"
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-NEWSAPI_URL = "https://newsapi.org/v2/top-headlines"
-TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+bot = telegram.Bot(token=TOKEN)
 
-def get_news():
-    params = {
-        "apiKey": NEWSAPI_KEY,
-        "country": "br",
-        "pageSize": 5
-    }
-    r = requests.get(NEWSAPI_URL, params=params, timeout=10)
-    r.raise_for_status()
-    return r.json().get("articles", [])
+def fetch_news():
+    resp = requests.get(BASE_URL, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
 
-def build_message(articles):
-    if not articles:
-        return "Nenhuma notícia encontrada."
-    lines = []
-    for art in articles[:3]:
-        title = html.escape(art.get("title") or "")
-        source = art.get("source", {}).get("name", "")
-        url = art.get("url", "")
-        lines.append(f"📰 <b>{title}</b>\n{source}\n{url}")
-    now = datetime.now().strftime("%d/%m/%Y %H:%M")
-    return f"📢 Manchetes — {now}\n\n" + "\n\n".join(lines)
+    noticias = []
+    for a in soup.select("h2 a, h3 a"):
+        title = a.get_text(strip=True)
+        href = a.get("href")
+        if href and (href.startswith("/noticia") or href.startswith("/noticias/")):
+            link = urljoin("https://sbtnews.sbt.com.br", href)
+            noticias.append((title, link))
 
-def send_message(text):
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
-    }
-    r = requests.post(TELEGRAM_URL, data=payload, timeout=10)
-    r.raise_for_status()
+    seen = set()
+    clean = []
+    for t, l in noticias:
+        if l not in seen:
+            seen.add(l)
+            clean.append((t, l))
+    return clean
+
+def send_news():
+    noticias = fetch_news()[:5]
+    if not noticias:
+        bot.send_message(chat_id=CHAT_ID, text="⚠️ Nenhuma notícia encontrada.")
+        return
+    msg = "📰 Últimas do SBT News:\n\n"
+    for title, link in noticias:
+        msg += f"• [{title}]({link})\n"
+    bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="Markdown")
 
 if __name__ == "__main__":
-    articles = get_news()
-    msg = build_message(articles)
-    send_message(msg)
-    print("✅ Notícias enviadas com sucesso!")
+    send_news()
